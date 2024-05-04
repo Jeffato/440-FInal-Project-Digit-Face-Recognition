@@ -48,6 +48,10 @@ def binary_Activation(x):
   if x >= 0: return 1
   else: return 0
 
+# Sigmoid activation function
+def sigmoid(x):
+  return 1 / (1 + np.exp(-x))
+
 # Testing
 # np.set_printoptions(threshold=np.inf, linewidth=300)
 # print(load_Image_Data("data/facedata/facedatatest", 150, 70, 60)[0])

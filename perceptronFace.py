@@ -61,9 +61,6 @@ def forwardPass(features, weights, bias):
 
 # Face features -> number of pixels in a segment of the picture
 def extract_Face_Feature(image):
-    x_dim = numFeatures
-    y_dim = numFeatures
-
     reshaped_image = image.reshape(numFeatures, 14, 15)
     counts = np.array([np.count_nonzero(slice) for slice in reshaped_image])
 
