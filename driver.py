@@ -1,3 +1,8 @@
+import utilFunctions
+import perceptronFace
+import os
+import numpy as np
+
 '''
 Dimensions:
 Faces: 70 x 60 - Begin with an empty line, end with empty line 
