@@ -108,11 +108,6 @@ def trainFace(faces, facelabels, testsize):
         total_error = facelabels_shuffled[0:testsize] - epochPrediction
         errors.append(np.mean(np.abs(total_error)))
 
-        # Print loss (Mean Squared Error) every 1000 epochs
-        if epoch % 1000 == 0:
-            loss = np.mean(np.square(total_error))
-            print(f'Epoch {epoch}: Loss = {loss}')
-
     endTime = time.time()  # Record end time
     trainingTime = endTime - startTime  # Calculate training time
 
