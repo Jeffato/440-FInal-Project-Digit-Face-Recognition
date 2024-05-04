@@ -8,7 +8,7 @@ Pixel Values
 '''
 
 # Converts Ascii input to numerical representation
-def IntegerConversionFunction(character):
+def Integer_Conversion_Function(character):
   if(character == ' '):
     return 0
   elif(character == '+'):
@@ -28,7 +28,7 @@ def load_Image_Data(file, count, x_dim, y_dim):
           images[i][j] = [char for char in f.readline()][0:y_dim]
 
   # Function to convert ascii to integer
-  intConvertVector = np.vectorize(IntegerConversionFunction)
+  intConvertVector = np.vectorize(Integer_Conversion_Function)
 
   return intConvertVector(images)
 
@@ -42,6 +42,11 @@ def load_label_Data(file, count):
         labels[i] = f.readline()
 
   return labels
+
+# binary activation
+def binary_Activation(x):
+  if x >= 0: return 1
+  else: return 0
 
 # Testing
 # np.set_printoptions(threshold=np.inf, linewidth=300)
