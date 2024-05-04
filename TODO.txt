@@ -21,4 +21,8 @@ Neural Network- Digits
     70% Acc
 
 Report
-Describe implemented algorithms
+    Describe implemented algorithms
+    Graph:
+        Training time v. data points used
+        Prediction Error v. data points used 
+        Standard Deviation v. data points used
