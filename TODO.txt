@@ -1,0 +1,23 @@
+Read data - DONE
+Feature Extraction
+
+Perceptron- Faces
+Perceptron- Digits
+
+Neural Network- Faces
+Neural Network- Digits
+
+Training Sets
+10%, 20%, 30% ... 100%
+
+Report
+Describe implemented algorithms
+
+Target 70% Accuracy for all algorithms
+
+For i=1:5 (you can use more iterations, if time permits)
+Train on 10% of randomly selected data points
+Test on test data and save the accuracy in acc[i]
+End
+Return mean(acc) and std(acc).
+Repeat the same for 20%, 30%, etc.
