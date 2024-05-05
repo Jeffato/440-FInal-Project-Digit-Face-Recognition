@@ -30,7 +30,8 @@ def load_Image_Data(file, count, x_dim, y_dim):
   # Function to convert ascii to integer
   intConvertVector = np.vectorize(Integer_Conversion_Function)
 
-  return intConvertVector(images)
+  # return intConvertVector(images)
+  return images
 
 # Loads count number of labels from file
 # Return 1-D numpy array of labels
