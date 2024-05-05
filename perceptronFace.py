@@ -105,8 +105,10 @@ def trainFace(faces, facelabels, testsize):
             prediction = forwardPass(feature, weights, bias)
             epochPrediction.append(prediction)
         
-        total_error = facelabels_shuffled[0:testsize] - epochPrediction
-        errors.append(np.mean(np.abs(total_error)))
+        total_error = np.sum(epochPrediction != facelabels_shuffled) / testsize
+        errors.append(total_error)
+
+        print(f"Epoch: {epoch}, Total_error: {np.sum(total_error)} ")
 
     endTime = time.time()  # Record end time
     trainingTime = endTime - startTime  # Calculate training time
