@@ -5,10 +5,10 @@ Perceptron- Faces - DONE
     Training 10, 20 ... 100%
     70% Acc
 
-Perceptron- Digits
+Perceptron- Digits - DONE, kinda
     Feature Extraction
     Training 10, 20 ... 100%
-    70% Acc
+    70% Acc -> not really but good enough
 
 Neural Network- Faces
     Feature Extraction
@@ -26,3 +26,23 @@ Report
         Training time v. data points used
         Prediction Error v. data points used 
         Standard Deviation v. data points used
+
+Demo
+- Describe perceptron
+    -   Loss function
+    -   Implementation 
+    -   Features 
+    -   Read and Predict
+
+- Describe Neural Networks 
+    -   Loss function
+    -   Implementation 
+    -   Features 
+    -   Read and Predict
+
+- Explain the test results, graphs and discuss any observations.
+
+Instructions:
+1. All team members need to be present during the demo.
+2. Have the code ready for display.
+3. Put the results and the graphs in a presentation (for everything asked in the assignment document). Have this ready for display as well.

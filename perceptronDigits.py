@@ -19,7 +19,7 @@ Digits: 28 x 28 - End with empty line
 
 # Constants
 numFeatures = 16
-numEpochs = 10000
+numEpochs = 600
 numClasses = 10 # Digits can be 0 to 9
 learningRate = 1
 
@@ -57,14 +57,14 @@ def trainDigit(digits, digitlabels, testsize):
 
     # Initialize weights
     weights = np.random.uniform(-1, 1, size = (numFeatures, numClasses))
-    bias = np.random.randn(numClasses)
+    bias = np.random.uniform(-1, 1, numClasses)
 
     errors = []
 
     # Loop through testing set
     for epoch in range(numEpochs+1):
         # Shuffle data set
-        indices = np.random.permutation(testsize) # Check
+        indices = np.random.permutation(testsize)
         digits_shuffled = digits[indices]
         digitlabels_shuffled = digitlabels[indices]
 
@@ -75,12 +75,19 @@ def trainDigit(digits, digitlabels, testsize):
             predicted_result = forwardPass(features, weights, bias)
 
             # Compute Error
-            error = digitlabels_shuffled[i] - predicted_result
+            error = (digitlabels_shuffled[i] - predicted_result) / 100
+            # print(f"Error: {error}, Prediction: {predicted_result} True Label: {digitlabels_shuffled[i]}")
 
             # Update weights
-            weights += learningRate * np.dot(features.T, error)
-            bias += learningRate * np.sum(error, axis=0)
-    
+            if predicted_result != digitlabels_shuffled[i]:
+                # Increase the weight for the true class
+                weights[:, digitlabels_shuffled[i]] += learningRate * abs(error) * features 
+                bias[digitlabels_shuffled[i]] += learningRate * abs(error)
+                
+                # Decrease the weight for the predicted class
+                weights[:, predicted_result] -= learningRate * abs(error) * features 
+                bias[predicted_result] -= learningRate * abs(error)
+                
         # Record error at the end of each epoch
         epochPrediction = []
 
@@ -89,13 +96,10 @@ def trainDigit(digits, digitlabels, testsize):
             prediction = forwardPass(feature, weights, bias)
             epochPrediction.append(prediction)
         
-        total_error = digitlabels_shuffled[0:testsize] - epochPrediction
-        errors.append(np.mean(np.abs(total_error)))
+        total_error = np.sum(epochPrediction != digitlabels_shuffled) / testsize
+        errors.append(total_error)
 
-        # Print loss (Mean Squared Error) every 1000 epochs
-        if epoch % 1000 == 0:
-            loss = np.mean(np.square(total_error))
-            print(f'Epoch {epoch}: Loss = {loss}')
+        print(f"Epoch: {epoch}, Total_error: {np.sum(total_error)} ")
 
     endTime = time.time()  # Record end time
     trainingTime = endTime - startTime  # Calculate training time
@@ -105,15 +109,12 @@ def trainDigit(digits, digitlabels, testsize):
     return weights, bias, trainingTime, errors
 
 def evalModel(image, labels, weights, bias):
-    predict = []
+    predictedLabels = []
 
-    for face in image:
-        feature = extract_Digit_Feature(face)
+    for digit in image:
+        feature = extract_Digit_Feature(digit)
         prediction = forwardPass(feature, weights, bias)
-        predict.append(prediction)
-
-    # Convert predicted probabilities to class labels
-    predictedLabels = np.argmax(predict, axis=1)
+        predictedLabels.append(prediction)
     
     # Compute accuracy
     accuracy = np.mean(predictedLabels == labels)
@@ -123,16 +124,16 @@ def evalModel(image, labels, weights, bias):
 ### TESTING ###
 
 #Training Sets
-digit_train = utilFunctions.load_Image_Data("data/facedata/facedatatrain", digitTrainingSize, 28, 28)
-digit_train_labels = utilFunctions.load_label_Data("data/facedata/facedatatrainlabels", digitTrainingSize)
+digit_train = utilFunctions.load_Image_Data("data/digitdata/trainingimages", digitTrainingSize, 28, 28)
+digit_train_labels = utilFunctions.load_label_Data("data/digitdata/traininglabels", digitTrainingSize)
 
 # Validation Sets
-digit_valid = utilFunctions.load_Image_Data("data/facedata/facedatavalidation", digitValSize, 28, 28)
-digit_valid_labels = utilFunctions.load_label_Data("data/facedata/facedatavalidationlabels", digitValSize)
+digit_valid = utilFunctions.load_Image_Data("data/digitdata/validationimages", digitValSize, 28, 28)
+digit_valid_labels = utilFunctions.load_label_Data("data/digitdata/validationlabels", digitValSize)
 
 # Testing Sets
-digit_test = utilFunctions.load_Image_Data("data/facedata/facedatatest", digitTestSize, 28, 28)
-digit_test_labels = utilFunctions.load_label_Data("data/facedata/facedatatestlabels", digitTestSize)
+digit_test = utilFunctions.load_Image_Data("data/digitdata/testimages", digitTestSize, 28, 28)
+digit_test_labels = utilFunctions.load_label_Data("data/digitdata/testlabels", digitTestSize)
 
 trainingTimes = []
 errorSet = {}
@@ -148,29 +149,29 @@ for percentage in range(startPercent, endPercent, 10):
         print(f"Training with {percentage}% of the training data")
 
         # Train model and save results to file
-        faceWeights, faceBias, faceTrainingTime, errors = trainDigit(digit_train, digit_train_labels, numDataPts)
-        np.savetxt(os.path.join(pDigitFolder, f"theta_{percentage}.txt"), faceWeights)
-        np.savetxt(os.path.join(pDigitFolder, f"bias_{percentage}.txt"), [faceBias])
-        np.savetxt(os.path.join(pDigitFolder, f"training_time_{percentage}.txt"), [faceTrainingTime])
+        digitWeights, digitBias, digitTrainingTime, errors = trainDigit(digit_train, digit_train_labels, numDataPts)
+        np.savetxt(os.path.join(pDigitFolder, f"theta_{percentage}.txt"), digitWeights)
+        np.savetxt(os.path.join(pDigitFolder, f"bias_{percentage}.txt"), [digitBias])
+        np.savetxt(os.path.join(pDigitFolder, f"training_time_{percentage}.txt"), [digitTrainingTime])
         np.savetxt(os.path.join(pDigitFolder, f"errors_{percentage}.txt"), errors)
 
     else:
-        faceWeights = np.loadtxt(os.path.join(pDigitFolder, f"theta_{percentage}.txt"))
-        faceBias = np.loadtxt(os.path.join(pDigitFolder, f"bias_{percentage}.txt"))
-        faceTrainingTime = float(np.loadtxt(os.path.join(pDigitFolder, f"training_time_{percentage}.txt")))
+        digitWeights = np.loadtxt(os.path.join(pDigitFolder, f"theta_{percentage}.txt"))
+        digitBias = np.loadtxt(os.path.join(pDigitFolder, f"bias_{percentage}.txt"))
+        digitTrainingTime = float(np.loadtxt(os.path.join(pDigitFolder, f"training_time_{percentage}.txt")))
         errors = np.loadtxt(os.path.join(pDigitFolder, f"errors_{percentage}.txt"))
     
     # Store training time
-    trainingTimes.append(faceTrainingTime)
+    trainingTimes.append(digitTrainingTime)
     
     # Store errors for this data size
     errorSet[numDataPts] = errors
     
     # Evaluate the model on validation data
-    validationAcc = evalModel(digit_valid, digit_valid_labels, faceWeights, faceBias)
+    validationAcc = evalModel(digit_valid, digit_valid_labels, digitWeights, digitBias)
     print("%19s: %4.2f%%" % ("Validation Accuracy",validationAcc * 100))
 
-    testAcc = evalModel(digit_test, digit_test_labels, faceWeights, faceBias)
+    testAcc = evalModel(digit_test, digit_test_labels, digitWeights, digitBias)
     print("%19s: %4.2f%%\n" % ("Test Accuracy" ,testAcc * 100))
 
 # Compute mean and standard deviation of errors for each data size
