@@ -27,7 +27,7 @@ hiddenLayerSize = 10 # Arbitrary
 outputLayerSize = 10 # Digits 0-9
 
 # Training Parameters
-learningRate = 1
+learningRate = 0.08
 numEpochs = 1000
 
 # Load digits from file
@@ -61,7 +61,6 @@ def load_label_Data(file, count):
 def extract_digit_features(image):
     pass
 
-# Delete later maybe
 def forward_pass(features, theta1, theta2, bias1, bias2):
     z1 = theta1.dot(features) + bias1
     a1 = utilFunctions.ReLu(z1)
@@ -99,10 +98,10 @@ def trainDigits(digits, digitlabels, testsize):
         a1 = utilFunctions.ReLu(z1)
         z2 = theta2.dot(a1) + bias2
         a2 = utilFunctions.softMax(z2)
-
+        
         # Backwards Prop
         # one_hot_Y = one_hot(Y)
-        dZ2 = np.argmax(a2) - utilFunctions.one_hot(digitlabels_shuffled)
+        dZ2 = a2 - utilFunctions.one_hot(digitlabels_shuffled.T)
         dW2 = (1 / testsize) * dZ2.dot(a1.T)
         db2 = (1 / testsize) * np.sum(dZ2)
 
@@ -117,7 +116,9 @@ def trainDigits(digits, digitlabels, testsize):
         bias2 -= learningRate * db2
 
         # Record Errors
-        total_error = getAccuracy(np.argmax(a2), digitlabels_shuffled)
+        prediction = np.argmax(a2, 0)
+
+        total_error = getAccuracy(prediction, digitlabels_shuffled)
         error.append(total_error)
 
         print(f"Epoch: {epoch}, Total_error: {total_error} ")
@@ -131,14 +132,14 @@ def trainDigits(digits, digitlabels, testsize):
 
 # use global var?
 def getAccuracy(predictions, label):
-   return np.sum(predictions == label) / label.size
+   return np.sum(predictions != label) / label.size
 
 ### TESTING CODE ####
 
 digit_train = load_digits("data/digitdata/trainingimages", digitTrainingSize)
 digit_train_labels = load_label_Data("data/digitdata/traininglabels", digitTrainingSize)
 
-theta1, theta2, bias1, bias2, training_time, errors = trainDigits(digit_train, digit_train_labels, 5000)
+theta1, theta2, bias1, bias2, training_time, errors = trainDigits(digit_train, digit_train_labels, digitTrainingSize)
 
 # #Training Sets
 # digit_train = utilFunctions.load_Image_Data("data/digitdata/trainingimages", digitTrainingSize, 28, 28)
