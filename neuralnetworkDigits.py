@@ -18,8 +18,8 @@ startPercent = 10
 endPercent = 101
 
 # Folder locations and Flags
-pDigitFolder = "nnDigitFinalWeights"
-save = True
+nnDigitFolder = "nnDigitFinalWeights2"
+save = False
 
 # Neural Network Parameters
 inputLayerSize = 784 # 28 x 28 images
@@ -28,7 +28,7 @@ outputLayerSize = 10 # Digits 0-9
 
 # Training Parameters
 learningRate = 0.08
-numEpochs = 1000
+numEpochs = 500
 
 # Load digits from file
 # Outputs a 2D array of size numDigits x imageSize 
@@ -75,10 +75,10 @@ def trainDigits(digits, digitlabels, testsize):
     startTime = time.time()
 
     # Initialize values, (Layer 1) weights of input -> hidden and (Layer 2) weights of hidden -> output
-    theta1 = np.random.uniform(-1, 1, (hiddenLayerSize, inputLayerSize))
+    theta1 = np.random.uniform(-0.5, 0.5, (hiddenLayerSize, inputLayerSize))
     bias1 = np.zeros(shape=(hiddenLayerSize, 1), dtype=float)
 
-    theta2 = np.random.uniform(-1, 1, (outputLayerSize, hiddenLayerSize))
+    theta2 = np.random.uniform(-0.5, 0.5, (outputLayerSize, hiddenLayerSize))
     bias2 = np.zeros(shape=(outputLayerSize, 1), dtype=float)
 
     error = []
@@ -94,13 +94,9 @@ def trainDigits(digits, digitlabels, testsize):
         X_T = digits_shuffled.transpose()
 
         # Forward Prop
-        z1 = theta1.dot(X_T) + bias1
-        a1 = utilFunctions.ReLu(z1)
-        z2 = theta2.dot(a1) + bias2
-        a2 = utilFunctions.softMax(z2)
-        
+        z1, a1, z2, a2 = forward_pass(X_T, theta1, theta2, bias1, bias2)
+
         # Backwards Prop
-        # one_hot_Y = one_hot(Y)
         dZ2 = a2 - utilFunctions.one_hot(digitlabels_shuffled.T)
         dW2 = (1 / testsize) * dZ2.dot(a1.T)
         db2 = (1 / testsize) * np.sum(dZ2)
@@ -118,7 +114,7 @@ def trainDigits(digits, digitlabels, testsize):
         # Record Errors
         prediction = np.argmax(a2, 0)
 
-        total_error = getAccuracy(prediction, digitlabels_shuffled)
+        total_error = 1 - getAccuracy(prediction, digitlabels_shuffled)
         error.append(total_error)
 
         print(f"Epoch: {epoch}, Total_error: {total_error} ")
@@ -132,24 +128,60 @@ def trainDigits(digits, digitlabels, testsize):
 
 # use global var?
 def getAccuracy(predictions, label):
-   return np.sum(predictions != label) / label.size
+    # counter = 0
+    # for i in range(label.size):
+    #     print(f"Pred: {predictions[i]}, Label: {label[i]}")
+    #     if(predictions[i] == label[i]): counter +=1
+    
+    # print(f"Count: {counter}")
+
+    return np.sum(predictions == label) / label.size
 
 ### TESTING CODE ####
 
 digit_train = load_digits("data/digitdata/trainingimages", digitTrainingSize)
 digit_train_labels = load_label_Data("data/digitdata/traininglabels", digitTrainingSize)
 
-theta1, theta2, bias1, bias2, training_time, errors = trainDigits(digit_train, digit_train_labels, digitTrainingSize)
-
-# #Training Sets
-# digit_train = utilFunctions.load_Image_Data("data/digitdata/trainingimages", digitTrainingSize, 28, 28)
-# digit_train_labels = utilFunctions.load_label_Data("data/digitdata/traininglabels", digitTrainingSize)
-
 # # Validation Sets
-# digit_valid = utilFunctions.load_Image_Data("data/digitdata/validationimages", digitValSize, 28, 28)
-# digit_valid_labels = utilFunctions.load_label_Data("data/digitdata/validationlabels", digitValSize)
+digit_valid = load_digits("data/digitdata/validationimages", digitValSize)
+digit_valid_labels = load_label_Data("data/digitdata/validationlabels", digitValSize)
 
 # # Testing Sets
-# digit_test = utilFunctions.load_Image_Data("data/digitdata/testimages", digitTestSize, 28, 28)
-# digit_test_labels = utilFunctions.load_label_Data("data/digitdata/testlabels", digitTestSize)
+digit_test = load_digits("data/digitdata/testimages", digitTestSize)
+digit_test_labels = load_label_Data("data/digitdata/testlabels", digitTestSize)
 
+# theta1, theta2, bias1, bias2, training_time, errors = trainDigits(digit_train, digit_train_labels, digitTrainingSize)
+
+if save: # Training
+    # Extract features and labels for the current percentage of data
+    # training_features_subset = extract_features(training_images[:num_data_pts])
+    # training_labels_subset = training_labels[:num_data_pts]
+    
+    # Train the model and record time and errors
+    theta1, theta2, bias1, bias2, training_time, errors = trainDigits(digit_train, digit_train_labels, digitTrainingSize)
+    # Save To File
+    if save:
+        if not os.path.exists(nnDigitFolder): os.makedirs(nnDigitFolder)
+
+        np.savetxt(os.path.join(nnDigitFolder, f"theta_1{100}_percent.txt"), theta1)
+        np.savetxt(os.path.join(nnDigitFolder, f"theta_2{100}_percent.txt"), theta2)
+        np.savetxt(os.path.join(nnDigitFolder, f"bias_1{100}_percent.txt"), bias1)
+        np.savetxt(os.path.join(nnDigitFolder, f"bias_2{100}_percent.txt"), bias2)
+        np.savetxt(os.path.join(nnDigitFolder, f"training_time{100}_percent.txt"), [training_time])
+        np.savetxt(os.path.join(nnDigitFolder, f"errors_{100}_percent.txt"), errors)
+
+else: # Reading from file
+    theta1 = np.loadtxt(os.path.join(nnDigitFolder, f"theta_1{100}_percent.txt"))
+    theta2 = np.loadtxt(os.path.join(nnDigitFolder, f"theta_2{100}_percent.txt"))
+    bias1 = np.loadtxt(os.path.join(nnDigitFolder, f"bias_1{100}_percent.txt"))
+    bias2 = np.loadtxt(os.path.join(nnDigitFolder, f"bias_2{100}_percent.txt"))
+    bias1.shape += (1,)
+    bias2.shape += (1,)
+    training_time = float(np.loadtxt(os.path.join(nnDigitFolder, f"training_time{100}_percent.txt")))
+    errors = np.loadtxt(os.path.join(nnDigitFolder, f"errors_{100}_percent.txt"))
+
+predTest = forward_pass(digit_test.transpose(), theta1, theta2, bias1, bias2)[3]
+predictions = np.argmax(predTest, 0)
+testAccuracy = getAccuracy(predictions, digit_test_labels)
+
+print(f"Test Accuracy: {testAccuracy} ")
