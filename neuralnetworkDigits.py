@@ -27,28 +27,26 @@ hiddenLayerSize = 10 # Arbitrary
 outputLayerSize = 10 # Digits 0-9
 
 # Training Parameters
-learningRate = 0.01
+learningRate = 1
 numEpochs = 1000
 
 # Load digits from file
 # Outputs a 2D array of size numDigits x imageSize 
 def load_digits(file, numDigits):
-    images = np.empty(shape = (numDigits, flattenImageDim), dtype=(np.unicode_))
+    images = np.empty(shape = (numDigits, flattenImageDim), dtype=int)
     
     with open(file, 'r') as f:
       for i in range(numDigits):
         data = ''
 
         for _ in range(image_x_dim):
-            data += f.readline()
-            # Convert the string of characters to a list of characters
-            image_flat = list(data)[:flattenImageDim]
+            data += f.readline().strip("\n")
+
+            # Convert the string of characters to a list of characters - slow and sus, fix later if you have time
+            image_flat = np.array([utilFunctions.Integer_Conversion_Function(char) for char in list(data)[:flattenImageDim]])
 
         images[i] = image_flat
             
-    # Convert ASCII to int
-    intConversion =  np.vectorize(utilFunctions.Integer_Conversion_Function) #  Why doesn't this work lol
-    # return intConversion(images)
     return images
 
 def load_label_Data(file, count):
@@ -77,9 +75,6 @@ def trainDigits(digits, digitlabels, testsize):
     # Record start time
     startTime = time.time()
 
-    # Convert input to transpose 
-    X_T = digits.transpose
-
     # Initialize values, (Layer 1) weights of input -> hidden and (Layer 2) weights of hidden -> output
     theta1 = np.random.uniform(-1, 1, (hiddenLayerSize, inputLayerSize))
     bias1 = np.zeros(shape=(hiddenLayerSize, 1), dtype=float)
@@ -93,26 +88,57 @@ def trainDigits(digits, digitlabels, testsize):
     for epoch in range(numEpochs):
         # Shuffle Data Set
         indices = np.random.permutation(testsize)
-        digits_shuffled = X_T[indices]
+        digits_shuffled = digits[indices]
         digitlabels_shuffled = digitlabels[indices]
 
+        # Convert input to transpose 
+        X_T = digits_shuffled.transpose()
+
         # Forward Prop
-        z1 = theta1.dot(digits_shuffled) + bias1
+        z1 = theta1.dot(X_T) + bias1
         a1 = utilFunctions.ReLu(z1)
         z2 = theta2.dot(a1) + bias2
         a2 = utilFunctions.softMax(z2)
 
         # Backwards Prop
-        
+        # one_hot_Y = one_hot(Y)
+        dZ2 = np.argmax(a2) - utilFunctions.one_hot(digitlabels_shuffled)
+        dW2 = (1 / testsize) * dZ2.dot(a1.T)
+        db2 = (1 / testsize) * np.sum(dZ2)
 
+        dZ1 = theta2.T.dot(dZ2) * utilFunctions.ReLU_deriv(z1)
+        dW1 = (1 / testsize) * dZ1.dot(X_T.T)
+        db1 = (1 / testsize) * np.sum(dZ1)
+
+        # Update weights
+        theta1 -= learningRate * dW1
+        bias1 -= learningRate * db1
+        theta2 -= learningRate * dW2
+        bias2 -= learningRate * db2
+
+        # Record Errors
+        total_error = getAccuracy(np.argmax(a2), digitlabels_shuffled)
+        error.append(total_error)
+
+        print(f"Epoch: {epoch}, Total_error: {total_error} ")
+    
+    endTime = time.time()
+    training_time = endTime - startTime
+
+    print("Done!")
+
+    return theta1, theta2, bias1, bias2, training_time, error
+
+# use global var?
+def getAccuracy(predictions, label):
+   return np.sum(predictions == label) / label.size
 
 ### TESTING CODE ####
 
-np.set_printoptions(threshold=sys.maxsize)
 digit_train = load_digits("data/digitdata/trainingimages", digitTrainingSize)
 digit_train_labels = load_label_Data("data/digitdata/traininglabels", digitTrainingSize)
 
-
+theta1, theta2, bias1, bias2, training_time, errors = trainDigits(digit_train, digit_train_labels, 5000)
 
 # #Training Sets
 # digit_train = utilFunctions.load_Image_Data("data/digitdata/trainingimages", digitTrainingSize, 28, 28)
