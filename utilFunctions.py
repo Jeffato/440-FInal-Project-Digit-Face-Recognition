@@ -49,15 +49,6 @@ def binary_Activation(x):
   if x >= 0: return 1
   else: return 0
 
-# Sigmoid activation function
-def sigmoid(x):
-  return 1 / (1 + np.exp(-x))
-
-def sigmoid_deriv(x):
-  sig = sigmoid(x)
-  
-  return sig * (1 - sig)
-
 def ReLu(x):
   return np.maximum(0, x)
 
@@ -72,8 +63,3 @@ def one_hot(X):
     one_hot_Y[np.arange(X.size), X] = 1
     one_hot_Y = one_hot_Y.T
     return one_hot_Y
-
-# Testing
-# np.set_printoptions(threshold=np.inf, linewidth=300)
-# print(load_Image_Data("data/facedata/facedatatest", 150, 70, 60)[0])
-# print(load_label_Data("data/facedata/facedatatestlabels", 150)[7])

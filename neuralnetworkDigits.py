@@ -2,8 +2,6 @@ import numpy as np
 import time
 import utilFunctions
 import os
-import math
-import sys
 
 # Data Set Size
 digitTestSize = 1000
