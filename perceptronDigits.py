@@ -19,14 +19,18 @@ Digits: 28 x 28 - End with empty line
 
 # Constants
 numFeatures = 16
-numEpochs = 600
+numEpochs = 1000
 numClasses = 10 # Digits can be 0 to 9
-learningRate = 1
+learningRate = 0.008
 
 # Data Set Size
 digitTestSize = 1000
 digitTrainingSize = 5000
 digitValSize = 1000
+
+image_x_dim = 28
+image_y_dim = 28
+flattenImageDim = image_x_dim * image_y_dim
 
 # Data Split %
 startPercent = 10
@@ -35,6 +39,23 @@ endPercent = 101
 # Folder locations and Flags
 pDigitFolder = "pDigitFinalWeights"
 save = False
+
+def load_digits(file, numFaces):
+    images = np.empty(shape = (numFaces, numFeatures), dtype=int)
+    
+    with open(file, 'r') as f:
+      for i in range(numFaces):
+        data = ''
+
+        for _ in range(image_x_dim):
+            data += f.readline().strip("\n")
+
+            # Convert the string of characters to a list of characters - slow and sus, fix later if you have time
+            image_flat = np.array([utilFunctions.Integer_Conversion_Function(char) for char in list(data)[:flattenImageDim]])
+
+        images[i] = extract_Digit_Feature(image_flat)
+            
+    return images
 
 def forwardPass(features, weights, bias):
     # Compute the weighted sum of inputs
@@ -71,11 +92,11 @@ def trainDigit(digits, digitlabels, testsize):
         # Loop through images 
         for i in range(testsize):
             # Extract features
-            features = extract_Digit_Feature(digits_shuffled[i])
+            features = digits_shuffled[i]
             predicted_result = forwardPass(features, weights, bias)
 
             # Compute Error
-            error = (digitlabels_shuffled[i] - predicted_result) / 100
+            error = (digitlabels_shuffled[i] - predicted_result) 
             # print(f"Error: {error}, Prediction: {predicted_result} True Label: {digitlabels_shuffled[i]}")
 
             # Update weights
@@ -92,8 +113,7 @@ def trainDigit(digits, digitlabels, testsize):
         epochPrediction = [] 
 
         for digit in digits_shuffled:
-            feature = extract_Digit_Feature(digit)
-            prediction = forwardPass(feature, weights, bias)
+            prediction = forwardPass(digit, weights, bias)
             epochPrediction.append(prediction)
         
         total_error = np.sum(epochPrediction != digitlabels_shuffled) / testsize
@@ -112,8 +132,7 @@ def evalModel(image, labels, weights, bias):
     predictedLabels = []
 
     for digit in image:
-        feature = extract_Digit_Feature(digit)
-        prediction = forwardPass(feature, weights, bias)
+        prediction = forwardPass(digit, weights, bias)
         predictedLabels.append(prediction)
     
     # Compute accuracy
@@ -124,15 +143,15 @@ def evalModel(image, labels, weights, bias):
 ### TESTING ###
 
 #Training Sets
-digit_train = utilFunctions.load_Image_Data("data/digitdata/trainingimages", digitTrainingSize, 28, 28)
+digit_train = load_digits("data/digitdata/trainingimages", digitTrainingSize)
 digit_train_labels = utilFunctions.load_label_Data("data/digitdata/traininglabels", digitTrainingSize)
 
 # Validation Sets
-digit_valid = utilFunctions.load_Image_Data("data/digitdata/validationimages", digitValSize, 28, 28)
+digit_valid = load_digits("data/digitdata/validationimages", digitValSize)
 digit_valid_labels = utilFunctions.load_label_Data("data/digitdata/validationlabels", digitValSize)
 
 # Testing Sets
-digit_test = utilFunctions.load_Image_Data("data/digitdata/testimages", digitTestSize, 28, 28)
+digit_test = load_digits("data/digitdata/testimages", digitTestSize)
 digit_test_labels = utilFunctions.load_label_Data("data/digitdata/testlabels", digitTestSize)
 
 trainingTimes = []
@@ -174,9 +193,9 @@ for percentage in range(startPercent, endPercent, 10):
     testAcc = evalModel(digit_test, digit_test_labels, digitWeights, digitBias)
     print("%19s: %4.2f%%\n" % ("Test Accuracy" ,testAcc * 100))
 
-# Compute mean and standard deviation of errors for each data size
-meanErrorsBySize = {size: np.mean(errors) for size, errors in errorSet.items()}
-stdErrorsBySize = {size: np.std(errors) for size, errors in errorSet.items()}
+    # Compute mean and standard deviation of errors for each data size
+    meanErrorsBySize = {size: np.mean(errors) for size, errors in errorSet.items()}
+    stdErrorsBySize = {size: np.std(errors) for size, errors in errorSet.items()}
 
 # Print statistics
 print("Mean Errors by Data Size\n------------------------")
