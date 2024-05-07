@@ -184,7 +184,7 @@ for percentage in range(startPercent, endPercent, 10):
         bias2 = np.loadtxt(os.path.join(nnFaceFolder, f"bias_2_{percentage}.txt"))
         bias1.shape += (1,)
         bias2.shape += (1,)
-        training_time = float(np.loadtxt(os.path.join(nnFaceFolder, f"training_time{percentage}.txt")))
+        training_time = float(np.loadtxt(os.path.join(nnFaceFolder, f"training_time_{percentage}.txt")))
         errors = np.loadtxt(os.path.join(nnFaceFolder, f"errors_{percentage}.txt"))
     
     # Store training time

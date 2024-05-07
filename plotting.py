@@ -3,7 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # folders to read the data from
-folders = ["pDigitFinalWeights", "pFaceFinalWeights"]
+# folders = ["pDigitFinalWeights", "pFaceFinalWeights"]
+folders = ["nnFaceFinalWeights", "nnDigitFinalWeights"]
 
 # data points from 0 to 100, increasing by 10
 dataPointPercent = np.arange(0, 101, 10, dtype=int)
