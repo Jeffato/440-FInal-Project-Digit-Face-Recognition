@@ -150,7 +150,7 @@ digit_valid_labels = load_label_Data("data/digitdata/validationlabels", digitVal
 digit_test = load_digits("data/digitdata/testimages", digitTestSize)
 digit_test_labels = load_label_Data("data/digitdata/testlabels", digitTestSize)
 
-# theta1, theta2, bias1, bias2, training_time, errors = trainDigits(digit_train, digit_train_labels, digitTrainingSize)
+theta1, theta2, bias1, bias2, training_time, errors = trainDigits(digit_train, digit_train_labels, digitTrainingSize)
 
 if save: # Training
     # Extract features and labels for the current percentage of data

@@ -15,7 +15,7 @@ Neural Network- Faces
     Training 10, 20 ... 100%
     70% Acc
 
-Neural Network- Digits
+Neural Network- Digits - Done
     Feature Extraction
     Training 10, 20 ... 100%
     70% Acc
