@@ -162,22 +162,22 @@ for percentage in range(startPercent, endPercent, 10):
 
         # Train model and save results to file
         theta1, theta2, bias1, bias2, training_time, errors = trainDigits(digit_train, digit_train_labels, numDataPts)
-        np.savetxt(os.path.join(nnDigitFolder, f"theta_1_{percentage}_percent.txt"), theta1)
-        np.savetxt(os.path.join(nnDigitFolder, f"theta_2_{percentage}_percent.txt"), theta2)
-        np.savetxt(os.path.join(nnDigitFolder, f"bias_1_{percentage}_percent.txt"), bias1)
-        np.savetxt(os.path.join(nnDigitFolder, f"bias_2_{percentage}_percent.txt"), bias2)
-        np.savetxt(os.path.join(nnDigitFolder, f"training_time{percentage}_percent.txt"), [training_time])
-        np.savetxt(os.path.join(nnDigitFolder, f"errors_{percentage}_percent.txt"), errors)
+        np.savetxt(os.path.join(nnDigitFolder, f"theta_1_{percentage}.txt"), theta1)
+        np.savetxt(os.path.join(nnDigitFolder, f"theta_2_{percentage}.txt"), theta2)
+        np.savetxt(os.path.join(nnDigitFolder, f"bias_1_{percentage}.txt"), bias1)
+        np.savetxt(os.path.join(nnDigitFolder, f"bias_2_{percentage}.txt"), bias2)
+        np.savetxt(os.path.join(nnDigitFolder, f"training_time{percentage}.txt"), [training_time])
+        np.savetxt(os.path.join(nnDigitFolder, f"errors_{percentage}.txt"), errors)
 
     else: # Reading from file
-        theta1 = np.loadtxt(os.path.join(nnDigitFolder, f"theta_1_{percentage}_percent.txt"))
-        theta2 = np.loadtxt(os.path.join(nnDigitFolder, f"theta_2_{percentage}_percent.txt"))
-        bias1 = np.loadtxt(os.path.join(nnDigitFolder, f"bias_1_{percentage}_percent.txt"))
-        bias2 = np.loadtxt(os.path.join(nnDigitFolder, f"bias_2_{percentage}_percent.txt"))
+        theta1 = np.loadtxt(os.path.join(nnDigitFolder, f"theta_1_{percentage}.txt"))
+        theta2 = np.loadtxt(os.path.join(nnDigitFolder, f"theta_2_{percentage}.txt"))
+        bias1 = np.loadtxt(os.path.join(nnDigitFolder, f"bias_1_{percentage}.txt"))
+        bias2 = np.loadtxt(os.path.join(nnDigitFolder, f"bias_2_{percentage}.txt"))
         bias1.shape += (1,)
         bias2.shape += (1,)
-        training_time = float(np.loadtxt(os.path.join(nnDigitFolder, f"training_time{percentage}_percent.txt")))
-        errors = np.loadtxt(os.path.join(nnDigitFolder, f"errors_{percentage}_percent.txt"))
+        training_time = float(np.loadtxt(os.path.join(nnDigitFolder, f"training_time{percentage}.txt")))
+        errors = np.loadtxt(os.path.join(nnDigitFolder, f"errors_{percentage}.txt"))
     
     # Store training time
     trainingTimes.append(training_time)
