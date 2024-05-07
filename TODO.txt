@@ -10,7 +10,7 @@ Perceptron- Digits - DONE, kinda
     Training 10, 20 ... 100%
     70% Acc -> not really but good enough
 
-Neural Network- Faces
+Neural Network- Faces - DONE
     Feature Extraction
     Training 10, 20 ... 100%
     70% Acc

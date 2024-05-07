@@ -3,210 +3,192 @@ import time
 import utilFunctions
 import os
 import math
-
-# Constants
-numFeatures = 20
-numEpochs = 1000
-learningRate = 1
-regularization_constant = 0.01
-
-hidden_nodes = 10
-output_nodes = 2
-theta1_size = hidden_nodes * numFeatures
-theta2_size = output_nodes * hidden_nodes # Check to add theta1
+import sys
 
 # Data Set Size
 faceTestSize = 150
 faceTrainingSize = 451
 faceValSize = 301
+image_x_dim = 70
+image_y_dim = 60
+flattenImageDim = image_x_dim * image_y_dim
+featureDim = 20
 
 # Data Split %
 startPercent = 10
 endPercent = 101
 
 # Folder locations and Flags
-pFaceFolder = "nnFaceFinalWeights"
+nnFaceFolder = "nnFaceWeights2"
 save = True
 
-# Face features -> number of pixels in a segment of the picture
+# Neural Network Parameters
+inputLayerSize = 20 # 70 x 60 images -> 5 x 4 images of size (14x15)
+hiddenLayerSize = 12 # Arbitrary
+outputLayerSize = 2 # Face or Not Face
+
+# Training Parameters
+learningRate = 0.01
+numEpochs = 10000
+
+# Load Faces from file
+# Outputs a 2D array of size numFaces x featureDim 
+def load_faces(file, numFaces):
+    images = np.empty(shape = (numFaces, featureDim), dtype=int)
+    
+    with open(file, 'r') as f:
+      for i in range(numFaces):
+        data = ''
+
+        for _ in range(image_x_dim):
+            data += f.readline().strip("\n")
+
+            # Convert the string of characters to a list of characters - slow and sus, fix later if you have time
+            image_flat = np.array([utilFunctions.Integer_Conversion_Function(char) for char in list(data)[:flattenImageDim]])
+
+        images[i] = extract_Face_Feature(image_flat)
+            
+    return images
+
+def load_label_Data(file, count):
+  labels = np.zeros(shape=count, dtype=(np.int_))
+
+  with open(file, 'r') as f:
+    for i in range(count):
+        labels[i] = f.readline()
+
+  return labels
+
 def extract_Face_Feature(image):
-    reshaped_image = image.reshape(numFeatures, -1)
+    reshaped_image = image.reshape(inputLayerSize, 14, 15)
     counts = np.array([np.count_nonzero(slice) for slice in reshaped_image])
 
     return counts
 
 def forward_pass(features, theta1, theta2, bias1, bias2):
-    z1 = np.dot(features, theta1) + bias1
-    a2 = utilFunctions.sigmoid(z1)
-    z2 = np.dot(a2, theta2) + bias2
-    a3 = utilFunctions.sigmoid(z2)
+    z1 = theta1.dot(features) + bias1
+    a1 = utilFunctions.ReLu(z1)
+    z2 = theta2.dot(a1) + bias2
+    a2 = utilFunctions.softMax(z2)
     
-    return (a2, a3)
+    return (z1, a1, z2, a2)
 
-# Calculates the cost error J_theta
-def j_theta_loss(training_labels, n, h_theta, theta1, theta2):
-    s_l = [numFeatures, hidden_nodes, output_nodes] 
-
-    j_theta = (-1/n) * (
-            sum(
-                sum(
-                    training_labels[i][k]*math.log(h_theta[i][k][0])+(1-training_labels[i][k])*math.log(1-h_theta[i][k][0])
-                for k in range(0, output_nodes) # For result element k in training sample i
-                )
-            for i in range(0,n) # For n training samples
-            )
-        ) + (regularization_constant / (2 * n)) * sum(
-            sum (
-                sum(
-                    pow(theta1[j,i],2) if l == 1 else pow(theta2[j,i],2)
-                for j in range(0, s_l[l]) # For nodes in current layer (no bias node in matrix so start is still 0)    
-                )
-            for i in range(0, s_l[l-1]) # For nodes in previous layer (no bias node in matrix so start is still 0)
-            )
-        for l in range(1,3) # For layers 2,3 (hidden, output)
-        )
-    return j_theta
-
-def trainFace(faces, facelabels, testsize):
+# Takes in 2D array of digits (numDigits x 784), 
+def trainFaces(faces, facelabels, testsize):
     # Record start time
     startTime = time.time()
 
-    # Initialize values, (1) weights of input -> hidden and (2) weights of hidden -> output
-    theta1 = np.random.uniform(-1, 1, (numFeatures, hidden_nodes))
-    theta2 = np.random.uniform(-1, 1, (hidden_nodes, output_nodes))
+    # Initialize values, (Layer 1) weights of input -> hidden and (Layer 2) weights of hidden -> output
+    theta1 = np.random.uniform(-0.5, 0.5, (hiddenLayerSize, inputLayerSize))
+    bias1 = np.zeros(shape=(hiddenLayerSize, 1), dtype=float)
 
-    bias1 = np.zeros(shape=(1, hidden_nodes), dtype=float)
-    bias2 = np.zeros(shape=(1, output_nodes), dtype=float)
+    theta2 = np.random.uniform(-0.5, 0.5, (outputLayerSize, hiddenLayerSize))
+    bias2 = np.zeros(shape=(outputLayerSize, 1), dtype=float)
 
-    errors = []
+    error = []
 
     # Training loop
     for epoch in range(numEpochs):
-        # Shuffle indices for each epoch
+        # Shuffle Data Set
         indices = np.random.permutation(testsize)
         faces_shuffled = faces[indices]
         facelabels_shuffled = facelabels[indices]
-
-        # Initialize output and gradients
-        predicted_output = np.empty(shape=(testsize, 1, output_nodes), dtype=float)
-        Delta_l1 = np.zeros(shape=(numFeatures, hidden_nodes,))
-        Delta_l2 = np.zeros(shape=(hidden_nodes, output_nodes))
         
-        for i in range(testsize):
-            features = extract_Face_Feature(faces_shuffled[i]).reshape(1,-1)
-            label = facelabels_shuffled[i].reshape(1, -1)
-            
-            # Forward Propagation
-            (a2, predicted_output[i]) = forward_pass(features, theta1, theta2, bias1, bias2)
+        # Convert input to transpose 
+        X_T = faces_shuffled.transpose()
 
-            # Backwards Propagation
-            delta_l3 = predicted_output[i] - label
-            delta_l2 = np.dot(delta_l3, theta2.T) * (np.ones(shape=(1, hidden_nodes)) - a2)
+        # Forward Prop
+        z1, a1, z2, a2 = forward_pass(X_T, theta1, theta2, bias1, bias2)
 
-            # Compute Gradients
-            Delta_l1 += np.dot(features.T, delta_l2)
-            Delta_l2 += np.dot(a2.T, delta_l3)
-        
-        # Compute Avg Regularized Gradient
-        l1_reg = 1/testsize * Delta_l1 + regularization_constant * theta1
-        l2_reg = 1/testsize * Delta_l2 + regularization_constant * theta2
-        
-        # # Gradient Checking
-        # DVec = np.concatenate((D_l1.flatten(), D_l2.flatten()),dtype=float)
-        # c = 1E-4
-        # gradApprox = np.empty(shape=(theta.shape[0]), dtype=float)
-        # for i in range(0, 5):#gradApprox.shape[0]):
-        #     theta[i] += c
-        #     temp1 = cost_error(training_labels, n, h_theta, theta)
-        #     theta[i] -= 2*c
-        #     temp2 = cost_error(training_labels, n, h_theta, theta)
-        #     theta[i] += c
-        #     gradApprox[i] = (temp1 - temp2)/(2 * c)
-        # # print(abs(gradApprox-DVec))
+        # Backwards Prop
+        dZ2 = a2 - utilFunctions.one_hot(facelabels_shuffled.T)
+        dW2 = (1 / testsize) * dZ2.dot(a1.T)
+        db2 = (1 / testsize) * np.sum(dZ2)
 
-        # Update Weights and Biases
-        theta1 -= learningRate * l1_reg
-        theta2 -= learningRate * l2_reg
-        bias1 -= learningRate * (np.sum(delta_l2, axis=1, keepdims=True) / testsize)
-        bias2 -= learningRate * (np.sum(delta_l3, axis=1, keepdims=True) / testsize)
-        
+        dZ1 = theta2.T.dot(dZ2) * utilFunctions.ReLU_deriv(z1)
+        dW1 = (1 / testsize) * dZ1.dot(X_T.T)
+        db1 = (1 / testsize) * np.sum(dZ1)
+
+        # Update weights
+        theta1 -= learningRate * dW1
+        bias1 -= learningRate * db1
+        theta2 -= learningRate * dW2
+        bias2 -= learningRate * db2
+
         # Record Errors
-        total_error = np.sum(np.argmax(predicted_output.reshape(testsize,output_nodes)) != facelabels_shuffled) / testsize
-        errors.append(total_error)
+        prediction = np.argmax(a2, 0)
 
-        print(f"Epoch: {epoch}, Total_error: {np.sum(total_error)} ")
-
-    endTime = time.time() # Record end time
-    training_time = endTime - startTime # Calculate training time
-
-    print("Training complete!\n")
-    return theta1, theta2, bias1, bias2, training_time, errors
-
-def evalModel(images, labels, theta1, theta2, bias1, bias2):
-    predictedLabels = []
-
-    for face in images:
-        feature = extract_Face_Feature(face)
-        prediction = forward_pass(feature, theta1, theta2, bias1, bias2)
-        predictedLabels.append(prediction)
-
-    accuracy = np.mean(predictedLabels == labels)
+        total_error = 1 - getAccuracy(prediction, facelabels_shuffled)
+        error.append(total_error)
+        print(f"Epoch: {epoch}, Total_error: {total_error} ")
     
-    return accuracy
+    endTime = time.time()
+    training_time = endTime - startTime
 
-### TESTING ###
+    print("Done!")
 
-#Training Sets
-face_train = utilFunctions.load_Image_Data("data/facedata/facedatatrain", faceTrainingSize, 70, 60)
-face_train_labels = utilFunctions.load_label_Data("data/facedata/facedatatrainlabels", faceTrainingSize)
+    return theta1, theta2, bias1, bias2, training_time, error
 
-# Validation Sets
-face_valid = utilFunctions.load_Image_Data("data/facedata/facedatavalidation", faceValSize, 70, 60)
-face_valid_labels = utilFunctions.load_label_Data("data/facedata/facedatavalidationlabels", faceValSize)
+# use global var?
+def getAccuracy(predictions, label):
+    return np.sum(predictions == label) / label.size
 
-# Testing Sets
-face_test = utilFunctions.load_Image_Data("data/facedata/facedatatest", faceTestSize, 70, 60)
-face_test_labels = utilFunctions.load_label_Data("data/facedata/facedatatestlabels", faceTestSize)
-
-trainingTimes = []
-errorSet = {}
-
-for percentage in range(startPercent, endPercent, 10):
-    numDataPts = int(faceTrainingSize * percentage / 100)
-
-    if save:
-        # Create the folder if it doesn't exist
-        if not os.path.exists(pFaceFolder): os.makedirs(pFaceFolder)
-
-        print(f"Training with {percentage}% of the training data")
-
-        # Train model and save results to file
-        theta1, theta2, bias1, bias2, training_time, errors = trainFace(face_train, face_train_labels, numDataPts)
-        np.savetxt(os.path.join(pFaceFolder, f"theta_1_{percentage}.txt"), theta1)
-        np.savetxt(os.path.join(pFaceFolder, f"theta_2_{percentage}.txt"), theta2)
-        np.savetxt(os.path.join(pFaceFolder, f"bias_1_{percentage}.txt"), bias1)
-        np.savetxt(os.path.join(pFaceFolder, f"bias_2_{percentage}.txt"), bias2)
-        np.savetxt(os.path.join(pFaceFolder, f"training_time_{percentage}.txt"), [training_time])
-        np.savetxt(os.path.join(pFaceFolder, f"errors_{percentage}.txt"), errors)
-
-    else:
-        theta1 = np.loadtxt(os.path.join(pFaceFolder, f"theta_1_{percentage}.txt"))
-        theta2= np.loadtxt(os.path.join(pFaceFolder, f"theta_2_{percentage}.txt"))
-        bias1 = np.loadtxt(os.path.join(pFaceFolder, f"bias_1_{percentage}.txt"))
-        bias2 = np.loadtxt(os.path.join(pFaceFolder, f"bias_2_{percentage}.txt"))
-        training_time = float(np.loadtxt(os.path.join(pFaceFolder, f"training_time_{percentage}.txt")))
-        errors = np.loadtxt(os.path.join(pFaceFolder, f"errors_{percentage}.txt"))
-
-    # Store training time
-    trainingTimes.append(training_time)
-
-    # Store errors for this data size
-    errorSet[numDataPts] = errors
+def getAccuracy2(predictions, label):
+    counter = 0
+    for i in range(label.size):
+        print(f"Pred: {predictions[i]}, Label: {label[i]}")
+        if(predictions[i] == label[i]): counter +=1
     
-    # Evaluate the model on validation and test data
-    validation_acc = evalModel(face_valid, face_valid_labels, theta1, theta2, bias1, bias2)
-    print("%19s: %4.2f%%" % ("Validation Accuracy",validation_acc * 100))
+    print(f"Count: {counter}, Total: {label.size}")
 
-    test_acc = evalModel(face_test, face_test_labels, theta1, theta2, bias1, bias2)
-    print("%19s: %4.2f%%\n" % ("Test Accuracy" ,test_acc * 100))
+    return np.sum(predictions == label) / label.size
+
+### TESTING CODE ####
+
+face_train = load_faces("data/facedata/facedatatrain", faceTrainingSize)
+face_train_labels = load_label_Data("data/facedata/facedatatrainlabels", faceTrainingSize)
+
+# # Validation Sets
+# face_valid = load_faces("data/facedata/facedatavalidation", faceValSize)
+# face_valid_labels = load_label_Data("data/facedata/facedatavalidationlabels", faceValSize)
+
+# # Testing Sets
+face_test = load_faces("data/facedata/facedatatest", faceTestSize)
+face_test_labels = load_label_Data("data/facedata/facedatatestlabels", faceTestSize)
+
+theta1, theta2, bias1, bias2, training_time, errors = trainFaces(face_train, face_train_labels, faceTrainingSize)
+
+predTest = forward_pass(face_test.transpose(), theta1, theta2, bias1, bias2)[3]
+predictions = np.argmax(predTest, 0)
+
+testAccuracy = getAccuracy2(predictions, face_test_labels)
+
+print(f"Test Accuracy: {testAccuracy} ")
+
+# if save: # Training
+#     # Extract features and labels for the current percentage of data
+#     # training_features_subset = extract_features(training_images[:num_data_pts])
+#     # training_labels_subset = training_labels[:num_data_pts]
     
+#     # Train the model and record time and errors
+#     theta1, theta2, bias1, bias2, training_time, errors = trainFaces(face_train, face_train_labels, faceTrainingSize)
+#     # Save To File
+#     if save:
+#         if not os.path.exists(nnFaceFolder): os.makedirs(nnFaceFolder)
+
+#         np.savetxt(os.path.join(nnFaceFolder, f"theta_1{100}_percent.txt"), theta1)
+#         np.savetxt(os.path.join(nnFaceFolder, f"theta_2{100}_percent.txt"), theta2)
+#         np.savetxt(os.path.join(nnFaceFolder, f"bias_1{100}_percent.txt"), bias1)
+#         np.savetxt(os.path.join(nnFaceFolder, f"bias_2{100}_percent.txt"), bias2)
+#         np.savetxt(os.path.join(nnFaceFolder, f"training_time{100}_percent.txt"), [training_time])
+#         np.savetxt(os.path.join(nnFaceFolder, f"errors_{100}_percent.txt"), errors)
+
+# else: # Reading from file
+#     theta1 = np.loadtxt(os.path.join(nnFaceFolder, f"theta_1{100}_percent.txt"))
+#     theta2 = np.loadtxt(os.path.join(nnFaceFolder, f"theta_2{100}_percent.txt"))
+#     bias1 = np.loadtxt(os.path.join(nnFaceFolder, f"bias_1{100}_percent.txt"))
+#     bias2 = np.loadtxt(os.path.join(nnFaceFolder, f"bias_2{100}_percent.txt"))
+#     bias1.shape += (1,)
+#     bias2.shape += (1,)
+#     training_time = float(np.loadtxt(os.path.join(nnFaceFolder, f"training_time{100}_percent.txt")))
+#     errors = np.loadtxt(os.path.join(nnFaceFolder, f"errors_{100}_percent.txt"))
