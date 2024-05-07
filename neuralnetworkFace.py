@@ -100,17 +100,17 @@ def trainFaces(faces, facelabels, testsize):
 
         # Backwards Prop
         dZ2 = a2 - utilFunctions.one_hot(facelabels_shuffled.T)
-        dW2 = (1 / testsize) * dZ2.dot(a1.T)
+        dtheta2 = (1 / testsize) * dZ2.dot(a1.T)
         db2 = (1 / testsize) * np.sum(dZ2)
 
         dZ1 = theta2.T.dot(dZ2) * utilFunctions.ReLU_deriv(z1)
-        dW1 = (1 / testsize) * dZ1.dot(X_T.T)
+        dtheta1 = (1 / testsize) * dZ1.dot(X_T.T)
         db1 = (1 / testsize) * np.sum(dZ1)
 
         # Update weights
-        theta1 -= learningRate * dW1
+        theta1 -= learningRate * dtheta1
         bias1 -= learningRate * db1
-        theta2 -= learningRate * dW2
+        theta2 -= learningRate * dtheta2
         bias2 -= learningRate * db2
 
         # Record Errors
