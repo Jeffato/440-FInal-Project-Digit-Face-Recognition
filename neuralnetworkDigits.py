@@ -18,7 +18,7 @@ startPercent = 10
 endPercent = 101
 
 # Folder locations and Flags
-nnDigitFolder = "nnDigitFinalWeights2"
+nnDigitFolder = "nnDigitFinalWeights"
 save = False
 
 # Neural Network Parameters
@@ -57,9 +57,6 @@ def load_label_Data(file, count):
         labels[i] = f.readline()
 
   return labels
-
-def extract_digit_features(image):
-    pass
 
 def forward_pass(features, theta1, theta2, bias1, bias2):
     z1 = theta1.dot(features) + bias1
@@ -150,38 +147,68 @@ digit_valid_labels = load_label_Data("data/digitdata/validationlabels", digitVal
 digit_test = load_digits("data/digitdata/testimages", digitTestSize)
 digit_test_labels = load_label_Data("data/digitdata/testlabels", digitTestSize)
 
-theta1, theta2, bias1, bias2, training_time, errors = trainDigits(digit_train, digit_train_labels, digitTrainingSize)
+trainingTimes = []
+errorSet = {}
 
-if save: # Training
-    # Extract features and labels for the current percentage of data
-    # training_features_subset = extract_features(training_images[:num_data_pts])
-    # training_labels_subset = training_labels[:num_data_pts]
-    
-    # Train the model and record time and errors
-    theta1, theta2, bias1, bias2, training_time, errors = trainDigits(digit_train, digit_train_labels, digitTrainingSize)
-    # Save To File
+# Iterate using different test sizes 10 20 ... 100
+for percentage in range(startPercent, endPercent, 10):
+    numDataPts = int(digitTrainingSize * percentage / 100)
+
     if save:
+        # Create the folder if it doesn't exist
         if not os.path.exists(nnDigitFolder): os.makedirs(nnDigitFolder)
 
-        np.savetxt(os.path.join(nnDigitFolder, f"theta_1{100}_percent.txt"), theta1)
-        np.savetxt(os.path.join(nnDigitFolder, f"theta_2{100}_percent.txt"), theta2)
-        np.savetxt(os.path.join(nnDigitFolder, f"bias_1{100}_percent.txt"), bias1)
-        np.savetxt(os.path.join(nnDigitFolder, f"bias_2{100}_percent.txt"), bias2)
-        np.savetxt(os.path.join(nnDigitFolder, f"training_time{100}_percent.txt"), [training_time])
-        np.savetxt(os.path.join(nnDigitFolder, f"errors_{100}_percent.txt"), errors)
+        print(f"Training with {percentage}% of the training data")
 
-else: # Reading from file
-    theta1 = np.loadtxt(os.path.join(nnDigitFolder, f"theta_1{100}_percent.txt"))
-    theta2 = np.loadtxt(os.path.join(nnDigitFolder, f"theta_2{100}_percent.txt"))
-    bias1 = np.loadtxt(os.path.join(nnDigitFolder, f"bias_1{100}_percent.txt"))
-    bias2 = np.loadtxt(os.path.join(nnDigitFolder, f"bias_2{100}_percent.txt"))
-    bias1.shape += (1,)
-    bias2.shape += (1,)
-    training_time = float(np.loadtxt(os.path.join(nnDigitFolder, f"training_time{100}_percent.txt")))
-    errors = np.loadtxt(os.path.join(nnDigitFolder, f"errors_{100}_percent.txt"))
+        # Train model and save results to file
+        theta1, theta2, bias1, bias2, training_time, errors = trainDigits(digit_train, digit_train_labels, numDataPts)
+        np.savetxt(os.path.join(nnDigitFolder, f"theta_1_{percentage}_percent.txt"), theta1)
+        np.savetxt(os.path.join(nnDigitFolder, f"theta_2_{percentage}_percent.txt"), theta2)
+        np.savetxt(os.path.join(nnDigitFolder, f"bias_1_{percentage}_percent.txt"), bias1)
+        np.savetxt(os.path.join(nnDigitFolder, f"bias_2_{percentage}_percent.txt"), bias2)
+        np.savetxt(os.path.join(nnDigitFolder, f"training_time{percentage}_percent.txt"), [training_time])
+        np.savetxt(os.path.join(nnDigitFolder, f"errors_{percentage}_percent.txt"), errors)
 
-predTest = forward_pass(digit_test.transpose(), theta1, theta2, bias1, bias2)[3]
-predictions = np.argmax(predTest, 0)
-testAccuracy = getAccuracy(predictions, digit_test_labels)
+    else: # Reading from file
+        theta1 = np.loadtxt(os.path.join(nnDigitFolder, f"theta_1_{percentage}_percent.txt"))
+        theta2 = np.loadtxt(os.path.join(nnDigitFolder, f"theta_2_{percentage}_percent.txt"))
+        bias1 = np.loadtxt(os.path.join(nnDigitFolder, f"bias_1_{percentage}_percent.txt"))
+        bias2 = np.loadtxt(os.path.join(nnDigitFolder, f"bias_2_{percentage}_percent.txt"))
+        bias1.shape += (1,)
+        bias2.shape += (1,)
+        training_time = float(np.loadtxt(os.path.join(nnDigitFolder, f"training_time{percentage}_percent.txt")))
+        errors = np.loadtxt(os.path.join(nnDigitFolder, f"errors_{percentage}_percent.txt"))
+    
+    # Store training time
+    trainingTimes.append(training_time)
+    
+    # Store errors for this data size
+    errorSet[numDataPts] = errors
+    
+    # Evaluate the model on validation data
+    predValid = forward_pass(digit_valid.transpose(), theta1, theta2, bias1, bias2)[3]
+    predictions = np.argmax(predValid, 0)
+    validationAcc = getAccuracy(predictions, digit_valid_labels)
+    print("%19s: %4.2f%%" % ("Validation Accuracy", validationAcc * 100))
 
-print(f"Test Accuracy: {testAccuracy} ")
+    # Evaluate the model on test data
+    predTest = forward_pass(digit_test.transpose(), theta1, theta2, bias1, bias2)[3]
+    predictions = np.argmax(predTest, 0)
+    testAcc = getAccuracy(predictions, digit_test_labels)
+    print("%19s: %4.2f%%" % ("Test Accuracy", testAcc * 100))
+    print("\n")
+
+    # Compute mean and standard deviation of errors for each data size
+    meanErrorsBySize = {size: np.mean(errors) for size, errors in errorSet.items()}
+    stdErrorsBySize = {size: np.std(errors) for size, errors in errorSet.items()}
+
+# Print statistics
+print("Mean Errors by Data Size\n------------------------")
+for mean in meanErrorsBySize:
+    print("n=%4d: %.14f" % (mean, meanErrorsBySize[mean]))
+print("\nStandard Deviations of Errors by Data Size\n-------------------------------------------")
+for std in stdErrorsBySize:
+    print("n=%4d: %.14f" % (std, stdErrorsBySize[std]))
+print("\nTraining Times\n--------------")
+for train in range(len(trainingTimes)):
+    print("n=%4d: %.14f" % ((train + 1) * 500, trainingTimes[train]))

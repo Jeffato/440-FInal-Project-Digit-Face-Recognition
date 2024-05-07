@@ -19,7 +19,7 @@ startPercent = 10
 endPercent = 101
 
 # Folder locations and Flags
-nnFaceFolder = "nnFinalFaceWeights"
+nnFaceFolder = "nnFaceFinalWeights"
 save = False
 
 # Neural Network Parameters
