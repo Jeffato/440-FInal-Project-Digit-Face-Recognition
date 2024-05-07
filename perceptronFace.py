@@ -63,7 +63,7 @@ def forwardPass(features, weights, bias):
 def extract_Face_Feature(image):
     reshaped_image = image.reshape(numFeatures, 14, 15)
     counts = np.array([np.count_nonzero(slice) for slice in reshaped_image])
-
+    
     return counts
 
 def trainFace(faces, facelabels, testsize):

@@ -89,7 +89,7 @@ def trainDigit(digits, digitlabels, testsize):
                 bias[predicted_result] -= learningRate * abs(error)
                 
         # Record error at the end of each epoch
-        epochPrediction = []
+        epochPrediction = [] 
 
         for digit in digits_shuffled:
             feature = extract_Digit_Feature(digit)
