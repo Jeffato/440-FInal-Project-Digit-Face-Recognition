@@ -10,11 +10,11 @@ Pixel Values
 # Converts Ascii input to numerical representation
 def Integer_Conversion_Function(character):
   if(character == ' '):
-    return 0
+    return int(0)
   elif(character == '+'):
-    return 1
+    return int(1)
   elif(character == '#'):
-    return 2   
+    return int(2)
 
 # Loads count number of images of size (x_dim, y_dim) from file
 # Returns 3-D numpy array (number of image, x_pixel, y_pixel)
@@ -52,6 +52,26 @@ def binary_Activation(x):
 # Sigmoid activation function
 def sigmoid(x):
   return 1 / (1 + np.exp(-x))
+
+def sigmoid_deriv(x):
+  sig = sigmoid(x)
+  
+  return sig * (1 - sig)
+
+def ReLu(x):
+  return np.maximum(0, x)
+
+def ReLU_deriv(x):
+  return x > 0
+
+def softMax(x):
+  return np.exp(x) / sum(np.exp(x))
+
+def one_hot(X):
+    one_hot_Y = np.zeros((X.size, X.max() + 1))
+    one_hot_Y[np.arange(X.size), X] = 1
+    one_hot_Y = one_hot_Y.T
+    return one_hot_Y
 
 # Testing
 # np.set_printoptions(threshold=np.inf, linewidth=300)
