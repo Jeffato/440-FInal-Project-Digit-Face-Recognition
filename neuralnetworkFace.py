@@ -174,7 +174,7 @@ for percentage in range(startPercent, endPercent, 10):
         np.savetxt(os.path.join(nnFaceFolder, f"theta_2_{percentage}.txt"), theta2)
         np.savetxt(os.path.join(nnFaceFolder, f"bias_1_{percentage}.txt"), bias1)
         np.savetxt(os.path.join(nnFaceFolder, f"bias_2_{percentage}.txt"), bias2)
-        np.savetxt(os.path.join(nnFaceFolder, f"training_time{percentage}.txt"), [training_time])
+        np.savetxt(os.path.join(nnFaceFolder, f"training_time_{percentage}.txt"), [training_time])
         np.savetxt(os.path.join(nnFaceFolder, f"errors_{percentage}.txt"), errors)
 
     else: # Reading from file
