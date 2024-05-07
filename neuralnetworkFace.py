@@ -19,8 +19,8 @@ startPercent = 10
 endPercent = 101
 
 # Folder locations and Flags
-nnFaceFolder = "nnFaceWeights2"
-save = True
+nnFaceFolder = "nnFinalFaceWeights"
+save = False
 
 # Neural Network Parameters
 inputLayerSize = 20 # 70 x 60 images -> 5 x 4 images of size (14x15)
@@ -129,7 +129,6 @@ def trainFaces(faces, facelabels, testsize):
 
     return theta1, theta2, bias1, bias2, training_time, error
 
-# use global var?
 def getAccuracy(predictions, label):
     return np.sum(predictions == label) / label.size
 
@@ -149,46 +148,75 @@ face_train = load_faces("data/facedata/facedatatrain", faceTrainingSize)
 face_train_labels = load_label_Data("data/facedata/facedatatrainlabels", faceTrainingSize)
 
 # # Validation Sets
-# face_valid = load_faces("data/facedata/facedatavalidation", faceValSize)
-# face_valid_labels = load_label_Data("data/facedata/facedatavalidationlabels", faceValSize)
+face_valid = load_faces("data/facedata/facedatavalidation", faceValSize)
+face_valid_labels = load_label_Data("data/facedata/facedatavalidationlabels", faceValSize)
 
 # # Testing Sets
 face_test = load_faces("data/facedata/facedatatest", faceTestSize)
 face_test_labels = load_label_Data("data/facedata/facedatatestlabels", faceTestSize)
 
-theta1, theta2, bias1, bias2, training_time, errors = trainFaces(face_train, face_train_labels, faceTrainingSize)
+trainingTimes = []
+errorSet = {}
 
-predTest = forward_pass(face_test.transpose(), theta1, theta2, bias1, bias2)[3]
-predictions = np.argmax(predTest, 0)
+# Iterate using different test sizes 10 20 ... 100
+for percentage in range(startPercent, endPercent, 10):
+    numDataPts = int(faceTrainingSize * percentage / 100)
 
-testAccuracy = getAccuracy2(predictions, face_test_labels)
+    if save:
+        # Create the folder if it doesn't exist
+        if not os.path.exists(nnFaceFolder): os.makedirs(nnFaceFolder)
 
-print(f"Test Accuracy: {testAccuracy} ")
+        print(f"Training with {percentage}% of the training data")
 
-# if save: # Training
-#     # Extract features and labels for the current percentage of data
-#     # training_features_subset = extract_features(training_images[:num_data_pts])
-#     # training_labels_subset = training_labels[:num_data_pts]
+        # Train model and save results to file
+        theta1, theta2, bias1, bias2, training_time, errors = trainFaces(face_train, face_train_labels, numDataPts)
+        np.savetxt(os.path.join(nnFaceFolder, f"theta_1_{percentage}_percent.txt"), theta1)
+        np.savetxt(os.path.join(nnFaceFolder, f"theta_2_{percentage}_percent.txt"), theta2)
+        np.savetxt(os.path.join(nnFaceFolder, f"bias_1_{percentage}_percent.txt"), bias1)
+        np.savetxt(os.path.join(nnFaceFolder, f"bias_2_{percentage}_percent.txt"), bias2)
+        np.savetxt(os.path.join(nnFaceFolder, f"training_time{percentage}_percent.txt"), [training_time])
+        np.savetxt(os.path.join(nnFaceFolder, f"errors_{percentage}_percent.txt"), errors)
+
+    else: # Reading from file
+        theta1 = np.loadtxt(os.path.join(nnFaceFolder, f"theta_1_{percentage}_percent.txt"))
+        theta2 = np.loadtxt(os.path.join(nnFaceFolder, f"theta_2_{percentage}_percent.txt"))
+        bias1 = np.loadtxt(os.path.join(nnFaceFolder, f"bias_1_{percentage}_percent.txt"))
+        bias2 = np.loadtxt(os.path.join(nnFaceFolder, f"bias_2_{percentage}_percent.txt"))
+        bias1.shape += (1,)
+        bias2.shape += (1,)
+        training_time = float(np.loadtxt(os.path.join(nnFaceFolder, f"training_time{percentage}_percent.txt")))
+        errors = np.loadtxt(os.path.join(nnFaceFolder, f"errors_{percentage}_percent.txt"))
     
-#     # Train the model and record time and errors
-#     theta1, theta2, bias1, bias2, training_time, errors = trainFaces(face_train, face_train_labels, faceTrainingSize)
-#     # Save To File
-#     if save:
-#         if not os.path.exists(nnFaceFolder): os.makedirs(nnFaceFolder)
+    # Store training time
+    trainingTimes.append(training_time)
+    
+    # Store errors for this data size
+    errorSet[numDataPts] = errors
+    
+    # Evaluate the model on validation data
+    predValid = forward_pass(face_valid.transpose(), theta1, theta2, bias1, bias2)[3]
+    predictions = np.argmax(predValid, 0)
+    validationAcc = getAccuracy(predictions, face_valid_labels)
+    print("%19s: %4.2f%%" % ("Validation Accuracy", validationAcc * 100))
 
-#         np.savetxt(os.path.join(nnFaceFolder, f"theta_1{100}_percent.txt"), theta1)
-#         np.savetxt(os.path.join(nnFaceFolder, f"theta_2{100}_percent.txt"), theta2)
-#         np.savetxt(os.path.join(nnFaceFolder, f"bias_1{100}_percent.txt"), bias1)
-#         np.savetxt(os.path.join(nnFaceFolder, f"bias_2{100}_percent.txt"), bias2)
-#         np.savetxt(os.path.join(nnFaceFolder, f"training_time{100}_percent.txt"), [training_time])
-#         np.savetxt(os.path.join(nnFaceFolder, f"errors_{100}_percent.txt"), errors)
+    # Evaluate the model on test data
+    predTest = forward_pass(face_test.transpose(), theta1, theta2, bias1, bias2)[3]
+    predictions = np.argmax(predTest, 0)
+    testAcc = getAccuracy(predictions, face_test_labels)
+    print("%19s: %4.2f%%" % ("Test Accuracy", testAcc * 100))
+    print("\n")
 
-# else: # Reading from file
-#     theta1 = np.loadtxt(os.path.join(nnFaceFolder, f"theta_1{100}_percent.txt"))
-#     theta2 = np.loadtxt(os.path.join(nnFaceFolder, f"theta_2{100}_percent.txt"))
-#     bias1 = np.loadtxt(os.path.join(nnFaceFolder, f"bias_1{100}_percent.txt"))
-#     bias2 = np.loadtxt(os.path.join(nnFaceFolder, f"bias_2{100}_percent.txt"))
-#     bias1.shape += (1,)
-#     bias2.shape += (1,)
-#     training_time = float(np.loadtxt(os.path.join(nnFaceFolder, f"training_time{100}_percent.txt")))
-#     errors = np.loadtxt(os.path.join(nnFaceFolder, f"errors_{100}_percent.txt"))
+    # Compute mean and standard deviation of errors for each data size
+    meanErrorsBySize = {size: np.mean(errors) for size, errors in errorSet.items()}
+    stdErrorsBySize = {size: np.std(errors) for size, errors in errorSet.items()}
+
+# Print statistics
+print("Mean Errors by Data Size\n------------------------")
+for mean in meanErrorsBySize:
+    print("n=%4d: %.14f" % (mean, meanErrorsBySize[mean]))
+print("\nStandard Deviations of Errors by Data Size\n-------------------------------------------")
+for std in stdErrorsBySize:
+    print("n=%4d: %.14f" % (std, stdErrorsBySize[std]))
+print("\nTraining Times\n--------------")
+for train in range(len(trainingTimes)):
+    print("n=%4d: %.14f" % ((train + 1) * 500, trainingTimes[train]))
